@@ -1,0 +1,14 @@
+{
+  "name": "redblack_tree",
+  "version": "0.1.0",
+  "description": "Red-Black tree implemented with pure javascript",
+  "main": "index.js",
+  "scripts": {
+    "test": "jasmine"
+  },
+  "author": "GuiBrandt",
+  "license": "Zlib",
+  "devDependencies": {
+    "jasmine": "^3.6.1"
+  }
+}

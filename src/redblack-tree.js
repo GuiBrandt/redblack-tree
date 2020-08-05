@@ -50,30 +50,35 @@ const Color = {
  * @prop {(n: N) => N} parent - Returns the parent node of `n`.
  * @prop {(n: N) => N} left - Returns the left child of `n`.
  * @prop {(n: N) => N} right - Returns the right child of `n`.
+ * @prop {(n: N) => T} get - Returns the value stored in node `n`.
  * @prop {(n: N) => boolean} empty - Returns true if `n` is empty (Nil).
  * @prop {(v: T) => N} add - Add a value to the tree and return the new node.
+ * @prop {(v: T) => T} remove - Remove a value from the tree and return it.
  */
 
 /**
  * @template T,N
  * @function
  * @param {Comparator<T>} less - Comparator.
- * @param {TreeStructure<NodeData<T>,N>} structure - Tree structure object.
- * @return {RedBlackTree<T,N>}
+ * @param {() => TreeStructure<NodeData<T>,N>} structure
+ *  - Tree structure provider.
+ * @return {() => RedBlackTree<T,N>}
  */
-const createRedBlack =
-    (less, structure) => {
+module.exports = (less, structure) =>
+    () => {
         const {
             root,
             parent,
             left,
             right,
             get: getData,
-            set,
+            set: setData,
             empty,
             rotateLeft,
-            rotateRight
-        } = structure;
+            rotateRight,
+            popMin,
+            popMax
+        } = structure();
 
         /** @constructor */
         const NodeData = (value, color) =>
@@ -82,19 +87,18 @@ const createRedBlack =
                 color
             });
 
-
         /**
          * @function
          * @param {N} node 
          */
-        const get = (node) => getData(node).value;
+        const getValue = node => getData(node).value;
 
         /**
          * @function
          * @param {N} node 
          * @return {Color}
          */
-        const getColor = (node) => getData(node).color;
+        const getColor = node => getData(node).color;
 
         /**
          * @function
@@ -102,7 +106,22 @@ const createRedBlack =
          * @param {Color} color
          */
         const setColor = (node, color) =>
-            set(node, NodeData(get(node).value, color));
+            setData(node, NodeData(getValue(node), color));
+
+        /**
+         * @function
+         * @param {N} node
+         */
+        const next = (node, value) => {
+            const current = getValue(node);
+            if (less(value, current)) {
+                return left(node);
+            } else if (less(current, value)) {
+                return right(node);
+            } else {
+                return null;
+            }
+        };
 
         /**
          * @function
@@ -169,14 +188,9 @@ const createRedBlack =
         const add = (value) => {
             let current = root();
             while (!empty(current)) {
-                if (less(value, get(current))) {
-                    current = left(current);
-                } else {
-                    current = right(current);
-                }
+                current = next(current, value) || right(current);
             }
-
-            set(current, NodeData(value, Color.Red));
+            setData(current, NodeData(value, Color.Red));
             return rebalance(current);
         };
 
@@ -192,10 +206,10 @@ const createRedBlack =
             let replace;
 
             if (empty(l)) replace = popMin(r);
-            else replace = popMin(l);
+            else replace = popMax(l);
 
-            set(node, replace);
-        }
+            setData(node, replace);
+        };
         
         /**
          * @function
@@ -205,7 +219,7 @@ const createRedBlack =
         const remove = (value) => {
             let current = root();
             while (!empty(current)) {
-                const currentValue = get(current);
+                const currentValue = getValue(current);
                 if (less(value, currentValue)) {
                     current = left(current);
                 } else if (less(currentValue, value)) {
@@ -215,6 +229,7 @@ const createRedBlack =
                     return currentValue;
                 }
             }
+            // TODO: rebalance :^)
             return null;
         };
 
@@ -223,12 +238,10 @@ const createRedBlack =
             parent,
             left,
             right,
-            get,
+            next,
+            get: getValue,
+            empty,
             add,
             remove
         };
     };
-
-module.exports = {
-    createRedBlack
-};
